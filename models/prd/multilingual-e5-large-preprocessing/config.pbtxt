@@ -1,0 +1,31 @@
+name: "multilingual-e5-large-preprocessing"
+backend: "python"
+max_batch_size: 256
+input [
+{
+    name: "text"
+    data_type: TYPE_STRING
+    dims: [ 1 ]
+}
+]
+
+output [
+{
+    name: "output_attention_mask"
+    data_type: TYPE_INT64
+    dims: [ 512 ]
+}
+]
+output [
+{
+    name: "output_input_ids"
+    data_type: TYPE_INT64
+    dims: [ 512 ]
+}
+]
+instance_group [
+    {
+      count: 10
+      kind: KIND_CPU
+    }
+]

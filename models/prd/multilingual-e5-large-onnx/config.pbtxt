@@ -1,0 +1,86 @@
+name: "multilingual-e5-large-onnx"
+backend: "onnxruntime"
+max_batch_size : 256
+input [
+  {
+    name: "attention_mask"
+    data_type: TYPE_INT64
+    dims: [ -1 ]
+  }
+]
+input [
+  {
+    name: "input_ids"
+    data_type: TYPE_INT64
+    dims: [ -1 ]
+  }
+]
+output [
+  {
+    name: "sentence_embedding"
+    data_type: TYPE_FP32
+    dims: [ 1024 ]
+  }
+]
+instance_group [
+  {
+    name: "onnx_gpu_group"
+    count: 1
+    kind: KIND_GPU
+    gpus: [ 0 ]
+  }
+]
+dynamic_batching {
+  max_queue_delay_microseconds: 10000,
+  preferred_batch_size: [64, 128, 256]
+}
+optimization { execution_accelerators {
+  gpu_execution_accelerator : [ {
+    name : "tensorrt"
+    parameters { key: "precision_mode" value: "FP16" }
+    parameters { key: "max_workspace_size_bytes" value: "8589934592" }
+  }]
+}}
+model_warmup [
+  {
+    name: "onnx_ort_warmup_min"
+    batch_size: 1
+    inputs: {
+      key: "attention_mask"
+      value: {
+        data_type: TYPE_INT64
+        dims: [ 4 ]
+        input_data_file: "1/raw_attention_mask"
+      }
+    }
+    inputs: {
+      key: "input_ids"
+      value: {
+        data_type: TYPE_INT64
+        dims: [ 4 ]
+        input_data_file: "1/raw_input_ids"
+      }
+    }
+  },
+  {
+    name: "onnx_ort_warmup_max"
+    batch_size: 256
+    inputs: {
+      key: "attention_mask"
+      value: {
+        data_type: TYPE_INT64
+        dims: [ 512 ]
+        input_data_file: "256/raw_attention_mask"
+      }
+    }
+    inputs: {
+      key: "input_ids"
+      value: {
+        data_type: TYPE_INT64
+        dims: [ 512 ]
+        input_data_file: "256/raw_input_ids"
+      }
+    }
+  }
+]
+version_policy: { specific: { versions: [1]}}
